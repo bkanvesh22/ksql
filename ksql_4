@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# Define the ksqlDB REST API endpoint URL
+KSQLDB_API="http://ksqldb-server:8088"
+
+# Function to execute a specific ksqlDB query
+execute_ksql_query() {
+    QUERY="$1"
+
+    # Execute the ksqlDB query using the REST API and capture the response
+    RESPONSE=$(curl -X "POST" "$KSQLDB_API/ksql" \
+        -H "Content-Type: application/vnd.ksql.v1+json" \
+        --data-raw "{\"ksql\": \"$QUERY\"}")
+
+    # Print the API response to the output
+    echo "$RESPONSE"
+}
+
+# Check if a query file argument is provided
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <query_file>"
+    exit 1
+fi
+
+# Read the entire content of the query file into a variable
+QUERY_CONTENT=$(<"$1")
+
+# Use grep to filter out commented lines (lines starting with '--')
+FILTERED_QUERIES=$(grep -Ev '^\s*--' <<< "$QUERY_CONTENT")
+
+# Set IFS to split on double newlines
+IFS=$'\n\n'
+
+# Concatenate multi-line queries ending with a backslash '\'
+CONCAT_QUERIES=""
+for QUERY in $FILTERED_QUERIES; do
+    if [[ $QUERY == *"\\" ]]; then
+        # Trim the trailing backslash '\'
+        QUERY="${QUERY%\\}"
+        CONCAT_QUERIES+="$QUERY"$'\n'
+    else
+        CONCAT_QUERIES+="$QUERY"$'\n\n'
+    fi
+done
+
+# Split the queries into an array based on double newlines
+read -r -d '' -a QUERIES <<< "$CONCAT_QUERIES"
+
+# Reset IFS to its default value
+IFS=$' \t\n'
+
+# Iterate over each query and call the function to execute it
+for QUERY in "${QUERIES[@]}"; do
+    # Skip empty queries (e.g., if there are multiple consecutive blank lines)
+    if [[ -n "$QUERY" ]]; then
+        # Remove leading and trailing whitespaces from the query
+        QUERY=$(echo "$QUERY" | awk '{$1=$1};1')
+        execute_ksql_query "$QUERY"
+    fi
+done
