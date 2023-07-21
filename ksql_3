@@ -23,10 +23,14 @@ if [ $# -eq 0 ]; then
 fi
 
 # Read the queries from the file and store them in the array
-IFS=$'\n\n' read -r -d '' -a QUERIES < "$1"
+IFS=$'\n\n'
+QUERIES=$(cat "$1")
+
+# Split the queries into an array based on double newlines
+readarray -t QUERIES_ARRAY <<< "$QUERIES"
 
 # Iterate over each query and call the function to execute it
-for QUERY in "${QUERIES[@]}"; do
+for QUERY in "${QUERIES_ARRAY[@]}"; do
     # Skip empty queries (e.g., if there are multiple consecutive blank lines)
     if [[ -n "$QUERY" ]]; then
         execute_ksql_query "$QUERY"
