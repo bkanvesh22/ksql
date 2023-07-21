@@ -1,0 +1,12 @@
+# Read the queries from the file and split them using one or more blank lines as the delimiter
+mapfile -t QUERIES < <(awk 'BEGIN {RS="\n\n+"} {print $0}' "$1")
+
+# Iterate over each query and call the function to execute it
+for QUERY in "${QUERIES[@]}"; do
+    # Remove leading and trailing whitespaces, including newlines
+    QUERY=$(echo "$QUERY" | tr -d '[:space:]')
+    # Skip empty queries (e.g., if there are multiple consecutive blank lines)
+    if [[ -n "$QUERY" ]]; then
+        execute_ksql_query "$QUERY"
+    fi
+done
