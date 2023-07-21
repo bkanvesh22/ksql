@@ -22,29 +22,11 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
-# Initialize an empty string to store the queries
-QUERIES=""
-
-# Set the IFS variable to split on null bytes
-IFS=$'\0'
-
-# Read the queries from the file and store them in the string
-while read -r -d '' query; do
-    # If the query is not empty, append it to the string
-    if [[ -n "$query" ]]; then
-        QUERIES+="$query"
-    fi
-done < "$1"
-
-# Reset the IFS variable to its default value
-IFS=$' \t\n'
-
-# Split the queries string back into individual queries based on double newlines
-IFS=$'\n\n'
-read -r -a QUERIES_ARRAY <<< "$QUERIES"
+# Read the queries from the file and store them in the array
+IFS=$'\n\n' read -r -d '' -a QUERIES < "$1"
 
 # Iterate over each query and call the function to execute it
-for QUERY in "${QUERIES_ARRAY[@]}"; do
+for QUERY in "${QUERIES[@]}"; do
     # Skip empty queries (e.g., if there are multiple consecutive blank lines)
     if [[ -n "$QUERY" ]]; then
         execute_ksql_query "$QUERY"
