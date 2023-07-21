@@ -21,11 +21,12 @@ execute_ksql_query() {
         --data-raw "{\"ksql\": \"$QUERY\"}"
 }
 
-# Check if both query file and table/stream name arguments are provided
-if [ $# -ne 2 ]; then
-    echo "Usage: $0 <query_file> <table_or_stream_name>"
-    exit 1
-fi
+# Read the queries from the file and split them using blank lines
+# The IFS variable is set to an empty value to handle blank lines correctly
+IFS= read -r -d '' -a QUERIES < "$1"
 
-# Call the function with the provided query file and table/stream name
-execute_ksql_query "$1" "$2"
+# Iterate over each query and call the function to execute it
+for QUERY in "${QUERIES[@]}"; do
+    execute_ksql_query "$QUERY"
+done
+
