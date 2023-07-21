@@ -22,17 +22,22 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
-# Read the queries from the file and store them in the array
-IFS=$'\n\n'
-QUERIES=$(cat "$1")
-
-# Split the queries into an array based on double newlines
-readarray -t QUERIES_ARRAY <<< "$QUERIES"
-
-# Iterate over each query and call the function to execute it
-for QUERY in "${QUERIES_ARRAY[@]}"; do
-    # Skip empty queries (e.g., if there are multiple consecutive blank lines)
-    if [[ -n "$QUERY" ]]; then
-        execute_ksql_query "$QUERY"
+# Read the queries from the file
+while IFS='' read -r query || [[ -n "$query" ]]; do
+    if [[ -n "$query" ]]; then
+        # If the line is not empty, append it to the current query
+        current_query+="$query"$'\n'
+    else
+        # If an empty line is encountered, execute the current query (if not empty)
+        if [[ -n "$current_query" ]]; then
+            execute_ksql_query "$current_query"
+        fi
+        # Reset the current query for the next iteration
+        current_query=""
     fi
-done
+done < "$1"
+
+# Execute any remaining query if there's one without a trailing blank line
+if [[ -n "$current_query" ]]; then
+    execute_ksql_query "$current_query"
+fi
