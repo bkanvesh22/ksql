@@ -1,5 +1,43 @@
-# Read the queries from the file and split them using one or more blank lines as the delimiter
-mapfile -t QUERIES < <(awk 'BEGIN {RS="\n\n+"} {print $0}' "$1")
+#!/bin/bash
+
+# Define the ksqlDB REST API endpoint URL
+KSQLDB_API="http://ksqldb-server:8088"
+
+# Function to execute a specific ksqlDB query
+execute_ksql_query() {
+    QUERY="$1"
+
+    # Execute the ksqlDB query using the REST API and capture the response
+    RESPONSE=$(curl -X "POST" "$KSQLDB_API/ksql" \
+        -H "Content-Type: application/vnd.ksql.v1+json" \
+        --data-raw "{\"ksql\": \"$QUERY\"}")
+
+    # Print the API response to the output
+    echo "$RESPONSE"
+}
+
+# Check if a query file argument is provided
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <query_file>"
+    exit 1
+fi
+
+# Initialize an empty array to store the queries
+QUERIES=()
+
+# Set the IFS variable to split on newlines
+IFS=$'\n'
+
+# Read the queries from the file and store them in the array
+while read -r line; do
+    # If the line is not empty, add it to the array
+    if [[ -n "$line" ]]; then
+        QUERIES+=("$line")
+    fi
+done < "$1"
+
+# Reset the IFS variable to its default value
+IFS=$' \t\n'
 
 # Iterate over each query and call the function to execute it
 for QUERY in "${QUERIES[@]}"; do
